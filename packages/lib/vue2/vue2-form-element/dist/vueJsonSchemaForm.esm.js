@@ -8508,9 +8508,11 @@ function getUserUiOptions(_ref4) {
 
       if (key === 'ui:options' && isObject(value)) {
         return _objectSpread2(_objectSpread2({}, options), value);
-      }
+      } // https://github.com/lljj-x/vue-json-schema-form/issues/170
+      // ui:hidden需要作为内置属性使用，不能直接透传给widget组件，如果组件需要只能在ui:options 中使用hidden传递
 
-      if (key.indexOf('ui:') === 0) {
+
+      if (key !== 'ui:hidden' && key.indexOf('ui:') === 0) {
         // 只对 ui:xxx 配置形式支持表达式
         return _objectSpread2(_objectSpread2({}, options), {}, _defineProperty({}, key.substring(3), curNodePath === undefined ? value : handleExpression(rootFormData, curNodePath, value, function () {
           return value;
@@ -10236,7 +10238,7 @@ var Widget = {
       // array 渲染为多选框时默认为空数组
       if (this.schema.items) {
         this.value = [];
-      } else if (this.required) {
+      } else if (this.required && this.formProps.defaultSelectFirstOption) {
         this.value = this.uiProps.enumOptions[0].value;
       }
     }
@@ -11383,7 +11385,9 @@ var SelectLinkageField = {
         props: _objectSpread2({
           isFormData: false,
           curValue: this.curSelectIndex,
-          globalOptions: this.globalOptions
+          globalOptions: this.globalOptions,
+          rootFormData: this.rootFormData,
+          curNodePath: this.curNodePath
         }, selectWidgetConfig),
         on: {
           onOtherDataChange: function onOtherDataChange(event) {
@@ -11807,9 +11811,16 @@ function createForm() {
       var _self$$props$formProp = self.$props.formProps,
           _self$$props$formProp2 = _self$$props$formProp.layoutColumn,
           layoutColumn = _self$$props$formProp2 === void 0 ? 1 : _self$$props$formProp2,
-          inlineFooter = _self$$props$formProp.inlineFooter,
-          formProps = _objectWithoutProperties(_self$$props$formProp, ["layoutColumn", "inlineFooter"]);
+          inlineFooter = _self$$props$formProp.inlineFooter;
+          _self$$props$formProp.labelSuffix;
+          _self$$props$formProp.isMiniDes;
+          _self$$props$formProp.defaultSelectFirstOption;
+          var uiFormProps = _objectWithoutProperties(_self$$props$formProp, ["layoutColumn", "inlineFooter", "labelSuffix", "isMiniDes", "defaultSelectFirstOption"]);
 
+      var _uiFormProps$inline = uiFormProps.inline,
+          inline = _uiFormProps$inline === void 0 ? false : _uiFormProps$inline,
+          _uiFormProps$labelPos = uiFormProps.labelPosition,
+          labelPosition = _uiFormProps$labelPos === void 0 ? 'top' : _uiFormProps$labelPos;
       var props = {
         schema: this.schema,
         uiSchema: this.uiSchema,
@@ -11824,11 +11835,12 @@ function createForm() {
         globalOptions: globalOptions,
         // 全局配置，差异化ui框架
         formProps: _objectSpread2({
-          labelPosition: 'top',
-          labelSuffix: '：'
-        }, formProps)
+          labelPosition: labelPosition,
+          labelSuffix: '：',
+          defaultSelectFirstOption: true,
+          inline: inline
+        }, self.$props.formProps)
       };
-      var inline = formProps.inline;
       return h(globalOptions.COMPONENT_MAP.form, {
         class: (_class = {
           genFromComponent: true,
@@ -11842,8 +11854,10 @@ function createForm() {
         },
         ref: 'genEditForm',
         props: _objectSpread2({
-          model: self.formData
-        }, props.formProps)
+          model: self.formData,
+          labelPosition: labelPosition,
+          inline: inline
+        }, uiFormProps)
       }, [h(SchemaField, {
         props: props
       }), defaultSlot]);
